@@ -34,9 +34,11 @@ export function usePrayer(prayerId: string) {
   const { actor, isFetching } = useActor();
   return useQuery<Prayer>({
     queryKey: ["prayer", prayerId],
-    queryFn: async () => {
+    queryFn: async (): Promise<Prayer> => {
       if (!actor) throw new Error("Actor not ready");
-      return actor.getPrayer(prayerId);
+      const result = await actor.getPrayer(prayerId);
+      if (!result) throw new Error("Prayer not found");
+      return result;
     },
     enabled: !!actor && !isFetching && !!prayerId,
     staleTime: 5 * 60 * 1000,

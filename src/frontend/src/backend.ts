@@ -107,10 +107,11 @@ export interface Step {
 }
 export interface backendInterface {
     getAllPrayers(): Promise<Array<Prayer>>;
-    getPrayer(prayerId: string): Promise<Prayer>;
+    getPrayer(prayerId: string): Promise<Prayer | null>;
     getPrayerSteps(prayerId: string): Promise<Array<Step>>;
     initialize(): Promise<void>;
 }
+import type { Prayer as _Prayer } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async getAllPrayers(): Promise<Array<Prayer>> {
@@ -127,18 +128,18 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async getPrayer(arg0: string): Promise<Prayer> {
+    async getPrayer(arg0: string): Promise<Prayer | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getPrayer(arg0);
-                return result;
+                return from_candid_opt_n1(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getPrayer(arg0);
-            return result;
+            return from_candid_opt_n1(this._uploadFile, this._downloadFile, result);
         }
     }
     async getPrayerSteps(arg0: string): Promise<Array<Step>> {
@@ -169,6 +170,9 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+}
+function from_candid_opt_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Prayer]): Prayer | null {
+    return value.length === 0 ? null : value[0];
 }
 export interface CreateActorOptions {
     agent?: Agent;

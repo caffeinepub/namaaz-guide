@@ -27,7 +27,7 @@ export const Prayer = IDL.Record({
 
 export const idlService = IDL.Service({
   'getAllPrayers' : IDL.Func([], [IDL.Vec(Prayer)], ['query']),
-  'getPrayer' : IDL.Func([IDL.Text], [Prayer], ['query']),
+  'getPrayer' : IDL.Func([IDL.Text], [IDL.Opt(Prayer)], ['query']),
   'getPrayerSteps' : IDL.Func([IDL.Text], [IDL.Vec(Step)], ['query']),
   'initialize' : IDL.Func([], [], []),
 });
@@ -54,7 +54,7 @@ export const idlFactory = ({ IDL }) => {
   
   return IDL.Service({
     'getAllPrayers' : IDL.Func([], [IDL.Vec(Prayer)], ['query']),
-    'getPrayer' : IDL.Func([IDL.Text], [Prayer], ['query']),
+    'getPrayer' : IDL.Func([IDL.Text], [IDL.Opt(Prayer)], ['query']),
     'getPrayerSteps' : IDL.Func([IDL.Text], [IDL.Vec(Step)], ['query']),
     'initialize' : IDL.Func([], [], []),
   });

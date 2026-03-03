@@ -3,38 +3,48 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useParams } from "@tanstack/react-router";
-import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useState } from "react";
 import type { Step } from "../backend.d";
 import { usePrayer, usePrayerSteps } from "../hooks/useQueries";
 
-// Roman Urdu step names keyed by step number
+// Roman Urdu step names keyed by step number (16 steps for Ahle Sunnat wa Jama'at tareeqa)
 const STEP_NAME_ROMAN: Record<string, string> = {
-  "1": "Takbeer-e-Tahreema",
-  "2": "Sana (Thana)",
-  "3": "Ta'awwuz aur Tasmiyah",
-  "4": "Surah Al-Fatiha",
-  "5": "Surah ya Aayat padhna",
-  "6": "Ruku",
-  "7": "Qawmah (Ruku se uthna)",
-  "8": "Pehla Sajdah",
-  "9": "Jalsa (Do Sajdon ke darmiyan)",
-  "10": "Doosra Sajdah",
-  "11": "Qa'dah Awwalah (Tashahud)",
-  "12": "Darood Ibrahim",
-  "13": "Dua Masura",
-  "14": "Salaam",
+  "1": "Niyyat",
+  "2": "Takbeer-e-Tahreema",
+  "3": "Sana (Thana)",
+  "4": "Ta'awwuz",
+  "5": "Tasmiyah (Bismillah)",
+  "6": "Surah Al-Fatiha",
+  "7": "Surah ya Aayat",
+  "8": "Ruku",
+  "9": "Qawmah (Ruku se uthna)",
+  "10": "Pehla Sajdah",
+  "11": "Jalsa (Do Sajdon ke darmiyan)",
+  "12": "Doosra Sajdah",
+  "13": "Attahiyat (Qa'da Awwalah)",
+  "14": "Darood Ibrahim",
+  "15": "Dua Masura",
+  "16": "Salaam",
 };
 
-// Roman Urdu rakaat range labels
+// Roman Urdu rakaat range labels — handles new backend values + backward compat
 const RAKAAT_RANGE_ROMAN: Record<string, string> = {
-  all: "Sab rakaaton mein",
-  "Sab rakaaton mein": "Sab rakaaton mein",
-  last_only: "Aakhri rakaat mein",
+  "Har rakaat mein": "Har rakaat mein",
+  "Sirf pehli rakaat mein": "Sirf pehli rakaat mein",
   "Pehli do rakaaton mein": "Pehli do rakaaton mein",
-  "Do rakaaton ke baad": "Do rakaaton ke baad",
-  "Aakhri rakaat mein": "Aakhri rakaat mein",
+  "Do rakaaton ke baad (Qa'da Awwalah)": "Do rakaaton ke baad (Qa'da Awwalah)",
+  "Aakhri qa'de mein (Qa'da Akhirah)": "Aakhri qa'de mein (Qa'da Akhirah)",
+  "Namaaz ke aakhir mein": "Namaaz ke aakhir mein",
+  // backward compat
+  all: "Har rakaat mein",
+  last_only: "Aakhri rakaat mein",
+  "Sab rakaaton mein": "Har rakaat mein",
+  "Pehli do rakaaton mein (backward)": "Pehli do rakaaton mein",
+  "Do rakaaton ke baad": "Do rakaaton ke baad (Qa'da Awwalah)",
+  "Aakhri rakaat mein": "Aakhri qa'de mein (Qa'da Akhirah)",
 };
 
 const PRAYER_META: Record<
@@ -56,6 +66,24 @@ function getPrayerMeta(id: string) {
       color: "oklch(0.76 0.13 82)",
     }
   );
+}
+
+// Returns Ahle Sunnat breakdown string for each prayer
+function getPrayerBreakdown(id: string): string {
+  switch (id.toLowerCase()) {
+    case "fajr":
+      return "2 Sunnat + 2 Farz";
+    case "zuhr":
+      return "4 Sunnat + 4 Farz + 2 Sunnat + 2 Nafil";
+    case "asr":
+      return "4 Sunnat + 4 Farz";
+    case "maghrib":
+      return "3 Farz + 2 Sunnat + 2 Nafil";
+    case "isha":
+      return "4 Sunnat + 4 Farz + 2 Sunnat + 3 Witr + 2 Nafil";
+    default:
+      return "";
+  }
 }
 
 interface StepCardProps {
@@ -81,29 +109,39 @@ function StepCard({ step, stepIndex, totalSteps, direction }: StepCardProps) {
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: direction * -40 }}
         transition={{ duration: 0.35, ease: "easeInOut" }}
-        className="step-panel rounded-2xl p-6 md:p-8 space-y-6"
+        className="step-panel rounded-2xl p-6 md:p-8 space-y-5"
       >
-        {/* Step header */}
-        <div className="flex items-center justify-between">
+        {/* Step header — name + step count badge */}
+        <div className="flex items-center justify-between gap-3">
           <Badge
             variant="outline"
-            className="text-[oklch(0.76_0.13_82)] border-[oklch(0.76_0.13_82_/_0.4)] bg-[oklch(0.76_0.13_82_/_0.08)] text-sm px-3 py-1"
+            className="text-[oklch(0.76_0.13_82)] border-[oklch(0.76_0.13_82_/_0.4)] bg-[oklch(0.76_0.13_82_/_0.08)] text-sm px-3 py-1 shrink-0"
           >
             {stepIndex + 1} / {totalSteps}
           </Badge>
-          <p className="text-[oklch(0.82_0.15_80)] text-lg font-semibold">
+          <p className="text-[oklch(0.82_0.15_80)] text-lg font-semibold text-right">
             {stepName}
           </p>
         </div>
 
-        {/* Rakaat range */}
-        {step.rakaatRange && (
-          <div className="text-center">
-            <span className="inline-block px-4 py-1 rounded-full text-sm border border-[oklch(0.76_0.13_82_/_0.3)] bg-[oklch(0.76_0.13_82_/_0.08)] text-[oklch(0.70_0.06_90)]">
-              {rakaatRangeDisplay}
+        {/* Rakaat range — always shown as prominent info badge */}
+        <div className="flex items-center justify-center gap-2">
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[oklch(0.76_0.13_82_/_0.25)]" />
+          <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-[oklch(0.76_0.13_82_/_0.4)] bg-[oklch(0.76_0.13_82_/_0.1)]">
+            <Star
+              className="h-3 w-3 text-[oklch(0.76_0.13_82)] fill-[oklch(0.76_0.13_82)]"
+              aria-hidden="true"
+            />
+            <span className="text-[oklch(0.78_0.09_82)] text-xs font-medium">
+              {rakaatRangeDisplay || "Har rakaat mein"}
             </span>
+            <Star
+              className="h-3 w-3 text-[oklch(0.76_0.13_82)] fill-[oklch(0.76_0.13_82)]"
+              aria-hidden="true"
+            />
           </div>
-        )}
+          <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[oklch(0.76_0.13_82_/_0.25)]" />
+        </div>
 
         {/* Decorative divider */}
         <div className="flex items-center justify-center gap-3">
@@ -207,11 +245,6 @@ export default function PrayerDetailPage() {
     setCurrentStepIndex(0);
   }, [prayerId]);
 
-  // Compute current rakaat from step rakaatRange
-  const currentRakaat = currentStep?.rakaatRange
-    ? currentStep.rakaatRange.match(/\d+/)?.[0] || "1"
-    : "1";
-
   const totalRakaat = prayer?.totalRakaat?.toString() ?? "?";
 
   function handleNext() {
@@ -229,6 +262,7 @@ export default function PrayerDetailPage() {
   }
 
   const meta = getPrayerMeta(prayerId);
+  const breakdown = getPrayerBreakdown(prayerId);
   const progressPercent =
     totalSteps > 0 ? ((currentStepIndex + 1) / totalSteps) * 100 : 0;
 
@@ -295,6 +329,7 @@ export default function PrayerDetailPage() {
         {isLoading && (
           <div data-ocid="step.loading_state" className="space-y-4">
             <Skeleton className="h-8 w-3/4 mx-auto rounded-xl bg-[oklch(0.22_0.055_155_/_0.6)]" />
+            <Skeleton className="h-32 w-full rounded-2xl bg-[oklch(0.22_0.055_155_/_0.6)]" />
             <Skeleton className="h-48 w-full rounded-2xl bg-[oklch(0.22_0.055_155_/_0.6)]" />
             <Skeleton className="h-20 w-full rounded-xl bg-[oklch(0.22_0.055_155_/_0.4)]" />
           </div>
@@ -329,25 +364,98 @@ export default function PrayerDetailPage() {
             transition={{ duration: 0.5 }}
             className="space-y-6"
           >
+            {/* Intro Card — Ahle Sunnat wa Jama'at info */}
+            <motion.div
+              data-ocid="prayer.intro_card"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.1 }}
+              className="rounded-2xl border border-[oklch(0.76_0.13_82_/_0.35)] bg-gradient-to-br from-[oklch(0.16_0.055_155_/_0.7)] to-[oklch(0.13_0.04_158_/_0.8)] px-5 py-4 space-y-3"
+            >
+              {/* Arabic prayer name large */}
+              <div className="text-center">
+                <p
+                  className="text-[oklch(0.85_0.15_80)] leading-relaxed"
+                  style={{
+                    fontSize: "clamp(2rem, 5vw, 3rem)",
+                    fontFamily:
+                      '"Scheherazade New", "Noto Naskh Arabic", "Traditional Arabic", serif',
+                    direction: "rtl",
+                    lineHeight: 2,
+                    textShadow: "0 0 18px oklch(0.76 0.13 82 / 0.35)",
+                  }}
+                >
+                  {meta.arabic || prayer.name}
+                </p>
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center justify-center gap-3">
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[oklch(0.76_0.13_82_/_0.35)]" />
+                <span className="text-[oklch(0.76_0.13_82_/_0.5)] text-sm">
+                  ✦
+                </span>
+                <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[oklch(0.76_0.13_82_/_0.35)]" />
+              </div>
+
+              {/* Breakdown + total */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className="text-[oklch(0.82_0.15_80)] border-[oklch(0.76_0.13_82_/_0.5)] bg-[oklch(0.76_0.13_82_/_0.1)] text-xs px-2.5 py-0.5"
+                  >
+                    {totalRakaat} Rakaat
+                  </Badge>
+                  {breakdown && (
+                    <span className="text-[oklch(0.65_0.045_90)] text-xs">
+                      {breakdown}
+                    </span>
+                  )}
+                </div>
+
+                {/* Maslak badge */}
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[oklch(0.76_0.13_82_/_0.12)] border border-[oklch(0.76_0.13_82_/_0.3)]">
+                  <span className="text-[oklch(0.76_0.13_82)] text-xs">☪</span>
+                  <span className="text-[oklch(0.72_0.08_82)] text-xs font-medium">
+                    Ahle Sunnat wa Jama'at ka tareeqa
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+
             {/* Prayer Info Bar */}
             <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-[oklch(0.18_0.055_155_/_0.6)] border border-[oklch(0.76_0.13_82_/_0.2)]">
               <div className="text-[oklch(0.70_0.04_90)] text-sm">
-                <span className="text-[oklch(0.76_0.13_82)]">Farz:</span>{" "}
-                {prayer.fardRakaat.toString()}
-                {prayer.sunnahRakaat > 0n && (
+                {breakdown ? (
+                  <span>
+                    <span className="text-[oklch(0.76_0.13_82)] font-medium">
+                      Rakaat:
+                    </span>{" "}
+                    {breakdown}
+                  </span>
+                ) : (
                   <>
-                    {" "}
-                    &nbsp;
-                    <span className="text-[oklch(0.76_0.13_82)]">Sunnat:</span>{" "}
-                    {prayer.sunnahRakaat.toString()}
+                    <span className="text-[oklch(0.76_0.13_82)]">Farz:</span>{" "}
+                    {prayer.fardRakaat.toString()}
+                    {prayer.sunnahRakaat > 0n && (
+                      <>
+                        {" "}
+                        &nbsp;
+                        <span className="text-[oklch(0.76_0.13_82)]">
+                          Sunnat:
+                        </span>{" "}
+                        {prayer.sunnahRakaat.toString()}
+                      </>
+                    )}
                   </>
                 )}
               </div>
 
-              {/* Rakaat Progress */}
+              {/* Step progress indicator */}
               <div className="flex items-center gap-2">
                 <span className="text-[oklch(0.76_0.13_82)] text-sm font-semibold">
-                  Rakaat {currentRakaat} / {totalRakaat}
+                  Qadam {currentStepIndex + 1} / {totalSteps}
                 </span>
               </div>
             </div>
@@ -427,13 +535,34 @@ export default function PrayerDetailPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.4 }}
-                  className="text-center py-6 rounded-2xl bg-[oklch(0.76_0.13_82_/_0.08)] border border-[oklch(0.76_0.13_82_/_0.3)]"
+                  className="text-center py-8 rounded-2xl bg-gradient-to-b from-[oklch(0.76_0.13_82_/_0.1)] to-[oklch(0.76_0.13_82_/_0.05)] border border-[oklch(0.76_0.13_82_/_0.35)] space-y-3"
                 >
-                  <p className="text-[oklch(0.82_0.15_80)] text-xl">
-                    MashaAllah! Namaaz mukammal hui 🤲
+                  {/* Completion dua in Arabic */}
+                  <p
+                    className="text-[oklch(0.82_0.15_80)] text-2xl"
+                    style={{
+                      fontFamily:
+                        '"Scheherazade New", "Noto Naskh Arabic", "Traditional Arabic", serif',
+                      direction: "rtl",
+                      lineHeight: 2,
+                    }}
+                  >
+                    اَلْحَمْدُ لِلّٰهِ رَبِّ الْعَالَمِيْنَ
                   </p>
-                  <p className="text-[oklch(0.60_0.04_90)] text-sm mt-1">
-                    Allah Ta'ala aap ki namaaz qabool farmaye
+
+                  <div className="flex items-center justify-center gap-2 px-6">
+                    <div className="h-px flex-1 bg-[oklch(0.76_0.13_82_/_0.3)]" />
+                    <span className="text-[oklch(0.76_0.13_82)] text-lg">
+                      🤲
+                    </span>
+                    <div className="h-px flex-1 bg-[oklch(0.76_0.13_82_/_0.3)]" />
+                  </div>
+
+                  <p className="text-[oklch(0.82_0.15_80)] text-xl font-semibold px-4">
+                    MashaAllah! Namaaz mukammal hui
+                  </p>
+                  <p className="text-[oklch(0.60_0.04_90)] text-sm px-6">
+                    Allah Ta'ala aap ki namaaz qabool farmaye, Ameen
                   </p>
                 </motion.div>
               )}

@@ -25,7 +25,7 @@ export interface Step {
 }
 export interface backendInterface {
     getAllPrayers(): Promise<Array<Prayer>>;
-    getPrayer(prayerId: string): Promise<Prayer>;
+    getPrayer(prayerId: string): Promise<Prayer | null>;
     getPrayerSteps(prayerId: string): Promise<Array<Step>>;
     initialize(): Promise<void>;
 }

@@ -28,7 +28,7 @@ export interface Step {
 }
 export interface _SERVICE {
   'getAllPrayers' : ActorMethod<[], Array<Prayer>>,
-  'getPrayer' : ActorMethod<[string], Prayer>,
+  'getPrayer' : ActorMethod<[string], [] | [Prayer]>,
   'getPrayerSteps' : ActorMethod<[string], Array<Step>>,
   'initialize' : ActorMethod<[], undefined>,
 }
